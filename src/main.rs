@@ -1,6 +1,4 @@
-use std::fmt::Display;
 use std::io::Read;
-use std::io::BufRead;
 use std::path::Path;
 
 use anyhow::anyhow;
@@ -10,26 +8,6 @@ use anyhow::Result;
 mod day1;
 
 const CACHE_DIR: &str = "/Users/cwbriones/.advent-of-code";
-
-trait Solution: Default {
-    type Input;
-    type Output: Display;
-
-    fn parse(&self, input: impl BufRead) -> Result<Self::Input>;
-
-    fn part_one(&mut self, input: Self::Input) -> Result<Self::Output>;
-
-    fn part_two(&mut self, input: Self::Input) -> Result<Self::Output>;
-
-    fn parse_and_run(
-        &mut self,
-        input: impl BufRead,
-    ) -> Result<String> {
-        let input = self.parse(input).context("parsing input")?;
-        let output = self.part_one(input)?;
-        Ok(format!("{}", output))
-    }
-}
 
 fn cached<F>(
     key: &str,
@@ -96,6 +74,8 @@ struct Args {
     year: usize,
     #[structopt(short, long, default_value = "1")]
     day: usize,
+    #[structopt(short, long)]
+    part: Option<usize>,
 }
 
 fn main() -> Result<()> {
@@ -111,10 +91,9 @@ fn main() -> Result<()> {
         &cache_key,
         || fetch_input(args.year, args.day),
     )?;
-    let output = match args.day {
-        1 => day1::Day1::default().parse_and_run(input.as_bytes()),
+    match args.day {
+        1 => day1::run(&input, args.part),
         d => return Err(anyhow!("day {} is not implemented", d)),
     }?;
-    println!("{}", output);
     Ok(())
 }
