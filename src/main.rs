@@ -8,6 +8,7 @@ use anyhow::Result;
 mod day1;
 
 const CACHE_DIR: &str = "/Users/cwbriones/.advent-of-code";
+const YEAR: usize = 21;
 
 fn cached<F>(
     key: &str,
@@ -30,12 +31,9 @@ fn cached<F>(
     Ok(content)
 }
 
-fn fetch_input(
-    year: usize,
-    day: usize,
-) -> Result<String> {
+fn fetch_input(day: usize) -> Result<String> {
     let token = get_session_token()?;
-    let url = format!("https://adventofcode.com/20{}/day/{}/input", year, day);
+    let url = format!("https://adventofcode.com/20{}/day/{}/input", YEAR, day);
     let res = ureq::get(&url)
         .set("Cookie", &format!("session={}", token))
         .call()?;
@@ -69,9 +67,6 @@ use structopt::StructOpt;
 struct Args {
     // #[structopt(parse(from_os_str))]
     // input:  Option<PathBuf>,
-
-    #[structopt(short, long, default_value = "21")]
-    year: usize,
     #[structopt(short, long, default_value = "1")]
     day: usize,
     #[structopt(short, long)]
@@ -80,16 +75,13 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::from_args();
-    if args.year != 20 {
-        return Err(anyhow!("only year=20 is supported"));
-    }
     if args.day < 1 || args.day > 25 {
         return Err(anyhow!("invalid value for day: {}", args.day));
     }
-    let cache_key = format!("input-20{}-{}", args.year, args.day);
+    let cache_key = format!("input/20{}/{}", YEAR, args.day);
     let input = cached(
         &cache_key,
-        || fetch_input(args.year, args.day),
+        || fetch_input(args.day),
     )?;
     match args.day {
         1 => day1::run(&input, args.part),
