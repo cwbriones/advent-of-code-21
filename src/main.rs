@@ -7,8 +7,17 @@ use anyhow::Result;
 
 mod day1;
 
+mod prelude {
+    pub use crate::Runner;
+    pub use anyhow::{
+        anyhow,
+        Context,
+        Result,
+    };
+}
+
 const CACHE_DIR: &str = "/Users/cwbriones/.advent-of-code";
-const YEAR: usize = 21;
+const YEAR: usize = 20;
 
 fn cached<F>(
     key: &str,
@@ -67,25 +76,111 @@ use structopt::StructOpt;
 struct Args {
     // #[structopt(parse(from_os_str))]
     // input:  Option<PathBuf>,
-    #[structopt(short, long, default_value = "1")]
-    day: usize,
+    #[structopt(short, long)]
+    day: Option<usize>,
     #[structopt(short, long)]
     part: Option<usize>,
 }
 
 fn main() -> Result<()> {
     let args = Args::from_args();
-    if args.day < 1 || args.day > 25 {
-        return Err(anyhow!("invalid value for day: {}", args.day));
+    if let Some(p) = args.part {
+        if p != 1 && p != 2 {
+            return Err(anyhow!("invalid value for part: {}", p));
+        }
     }
-    let cache_key = format!("input/20{}/{}", YEAR, args.day);
+    return match args.day {
+        Some(d) if d < 1 || d > 25 => {
+            Err(anyhow!("invalid value for day: {}", d))
+        },
+        Some(d) => dispatch(d, args.part),
+        None => {
+            (1..25)
+                .map(|d| dispatch(d, args.part))
+                .collect::<Result<Vec<()>>>()
+                .map(|_| ())
+        },
+    };
+}
+
+fn dispatch(
+    day: usize,
+    part: Option<usize>,
+) -> Result<()> {
+    let cache_key = format!("input/20{}/{}", YEAR, day);
     let input = cached(
         &cache_key,
-        || fetch_input(args.day),
+        || fetch_input(day),
     )?;
-    match args.day {
-        1 => day1::run(&input, args.part),
+    let runner = Runner{day, part};
+    match day {
+        1 => day1::run(&input, &runner),
         d => return Err(anyhow!("day {} is not implemented", d)),
-    }?;
-    Ok(())
+    }
+}
+
+pub struct Runner {
+    day: usize,
+    part: Option<usize>,
+}
+
+impl Runner {
+    pub fn part_one<F, D>(&self, f: F)
+        where F: FnOnce() -> D,
+              D: std::fmt::Display,
+    {
+        if let Some(1) | None = self.part {
+            self.run_part(1, f);
+        }
+    }
+
+    pub fn part_two<F, D>(&self, f: F)
+        where F: FnOnce() -> D,
+              D: std::fmt::Display,
+    {
+        if let Some(2) | None = self.part {
+            self.run_part(2, f);
+        }
+    }
+
+    fn run_part<F, D>(
+        &self,
+        part: usize,
+        f: F,
+    )
+        where F: FnOnce() -> D,
+              D: std::fmt::Display,
+    {
+        use std::time::Instant;
+
+        let clock = Instant::now();
+        let output = f();
+        let elapsed = clock.elapsed();
+        if self.day < 10 {
+            print!(" ");
+        }
+        println!("Day {}, Part {}: {}", self.day, part, output);
+        println!("                {}", display_duration(elapsed));
+        println!();
+    }
+}
+
+fn display_duration(duration: std::time::Duration) -> String {
+    let val = duration.as_micros();
+    let mut divisor = 1;
+
+    let mut unit = "µs";
+    let units: &[(&str, u128)] = &[
+        ("ms", 1000),
+        ("s", 1000),
+    ];
+
+    for (u, conversion) in units {
+        if val < *conversion {
+            break
+        }
+        divisor *= conversion;
+        unit = u;
+    }
+    return format!("{}{}", val / divisor, unit);
 }

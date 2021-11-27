@@ -1,24 +1,21 @@
-use anyhow::Result;
+use crate::prelude::*;
 
 fn parse(r: &str) -> Result<Vec<usize>> {
     r.lines()
-        .map(|line| {
-            line.parse::<usize>()
-                .map_err(anyhow::Error::from)
-        })
+        .map(str::parse)
         .collect::<Result<Vec<_>, _>>()
+        .map_err(Into::into)
 }
 
 fn part_one(nums: &[usize]) -> usize {
-    let len = nums.len();
-    for i in 0..len {
-        for j in (i+1)..len {
-            if nums[i] + nums[j] == 2020 {
-                return nums[i] * nums[j]
+    for (i, a) in nums.iter().enumerate() {
+        for b in &nums[i+1..] {
+            if a + b == 2020 {
+                return a * b
             }
         }
     }
-    panic!("no solution found");
+    0
 }
 
 fn part_two(nums: &[usize]) -> usize {
@@ -30,26 +27,19 @@ fn part_two(nums: &[usize]) -> usize {
             }
         }
     }
-    panic!("no solution found");
+    0
 }
 
 //
 // Everything below this point can be moved into a template
 //
-
 pub fn run(
     input: &str,
-    part: Option<usize>
+    runner: &Runner,
 ) -> Result<()> {
     let input = parse(input)?;
-    if let Some(1) | None = part {
-        let out = part_one(&input);
-        println!("Day 1 - Part 1: {}", out);
-    }
-    if let Some(2) | None = part {
-        let out = part_two(&input);
-        println!("Day 1 - Part 2: {}", out);
-    }
+    runner.part_one(|| part_one(&input));
+    runner.part_two(|| part_two(&input));
     Ok(())
 }
 
