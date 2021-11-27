@@ -8,34 +8,31 @@ use anyhow::Result;
 mod day1;
 
 mod prelude {
-    pub use crate::Runner;
     pub use anyhow::{
         anyhow,
         Context,
         Result,
     };
+
+    pub use crate::Runner;
 }
 
 const CACHE_DIR: &str = "/Users/cwbriones/.advent-of-code";
 const YEAR: usize = 20;
 
-fn cached<F>(
-    key: &str,
-    f: F,
-) -> Result<String>
-    where F: Fn() -> Result<String>
+fn cached<F>(key: &str, f: F) -> Result<String>
+where
+    F: Fn() -> Result<String>,
 {
     let full_path = Path::new(CACHE_DIR).join(key);
     let dir = full_path.parent().expect("non-empty path");
 
     if full_path.exists() {
-        return std::fs::read_to_string(full_path)
-            .map_err(Into::into);
+        return std::fs::read_to_string(full_path).map_err(Into::into);
     }
     std::fs::create_dir_all(dir)?;
-    let content = f().with_context(||
-        format!("populate cache entry for {}", full_path.display())
-    )?;
+    let content =
+        f().with_context(|| format!("populate cache entry for {}", full_path.display()))?;
     std::fs::write(full_path, &content)?;
     Ok(content)
 }
@@ -54,20 +51,24 @@ fn fetch_input(day: usize) -> Result<String> {
         let size = size.parse::<usize>().context("parse content-length")?;
         body.reserve(size);
     }
-    res.into_reader().read_to_string(&mut body).context("read response body")?;
+    res.into_reader()
+        .read_to_string(&mut body)
+        .context("read response body")?;
     Ok(body)
 }
 
 fn get_session_token() -> Result<String> {
     if let Ok(val) = std::env::var("AOC_TOKEN") {
-        return Ok(val)
+        return Ok(val);
     }
     let full_path = Path::new(CACHE_DIR).join("session");
     if !full_path.exists() {
-        return Err(anyhow!("session token not found at '{}'", full_path.display()));
+        return Err(anyhow!(
+            "session token not found at '{}'",
+            full_path.display()
+        ));
     }
-    std::fs::read_to_string(full_path)
-        .map_err(Into::into)
+    std::fs::read_to_string(full_path).map_err(Into::into)
 }
 
 use structopt::StructOpt;
@@ -90,29 +91,19 @@ fn main() -> Result<()> {
         }
     }
     return match args.day {
-        Some(d) if d < 1 || d > 25 => {
-            Err(anyhow!("invalid value for day: {}", d))
-        },
+        Some(d) if d < 1 || d > 25 => Err(anyhow!("invalid value for day: {}", d)),
         Some(d) => dispatch(d, args.part),
-        None => {
-            (1..25)
-                .map(|d| dispatch(d, args.part))
-                .collect::<Result<Vec<()>>>()
-                .map(|_| ())
-        },
+        None => (1..25)
+            .map(|d| dispatch(d, args.part))
+            .collect::<Result<Vec<()>>>()
+            .map(|_| ()),
     };
 }
 
-fn dispatch(
-    day: usize,
-    part: Option<usize>,
-) -> Result<()> {
+fn dispatch(day: usize, part: Option<usize>) -> Result<()> {
     let cache_key = format!("input/20{}/{}", YEAR, day);
-    let input = cached(
-        &cache_key,
-        || fetch_input(day),
-    )?;
-    let runner = Runner{day, part};
+    let input = cached(&cache_key, || fetch_input(day))?;
+    let runner = Runner { day, part };
     match day {
         1 => day1::run(&input, &runner),
         d => return Err(anyhow!("day {} is not implemented", d)),
@@ -126,8 +117,9 @@ pub struct Runner {
 
 impl Runner {
     pub fn part_one<F, D>(&self, f: F)
-        where F: FnOnce() -> D,
-              D: std::fmt::Display,
+    where
+        F: FnOnce() -> D,
+        D: std::fmt::Display,
     {
         if let Some(1) | None = self.part {
             self.run_part(1, f);
@@ -135,21 +127,19 @@ impl Runner {
     }
 
     pub fn part_two<F, D>(&self, f: F)
-        where F: FnOnce() -> D,
-              D: std::fmt::Display,
+    where
+        F: FnOnce() -> D,
+        D: std::fmt::Display,
     {
         if let Some(2) | None = self.part {
             self.run_part(2, f);
         }
     }
 
-    fn run_part<F, D>(
-        &self,
-        part: usize,
-        f: F,
-    )
-        where F: FnOnce() -> D,
-              D: std::fmt::Display,
+    fn run_part<F, D>(&self, part: usize, f: F)
+    where
+        F: FnOnce() -> D,
+        D: std::fmt::Display,
     {
         use std::time::Instant;
 
@@ -170,14 +160,11 @@ fn display_duration(duration: std::time::Duration) -> String {
     let mut divisor = 1;
 
     let mut unit = "µs";
-    let units: &[(&str, u128)] = &[
-        ("ms", 1000),
-        ("s", 1000),
-    ];
+    let units: &[(&str, u128)] = &[("ms", 1000), ("s", 1000)];
 
     for (u, conversion) in units {
         if val < *conversion {
-            break
+            break;
         }
         divisor *= conversion;
         unit = u;

@@ -9,9 +9,9 @@ fn parse(r: &str) -> Result<Vec<usize>> {
 
 fn part_one(nums: &[usize]) -> usize {
     for (i, a) in nums.iter().enumerate() {
-        for b in &nums[i+1..] {
+        for b in &nums[i + 1..] {
             if a + b == 2020 {
-                return a * b
+                return a * b;
             }
         }
     }
@@ -21,9 +21,9 @@ fn part_one(nums: &[usize]) -> usize {
 fn part_two(nums: &[usize]) -> usize {
     let len = nums.len();
     for i in 0..len {
-        for j in (i+1)..len {
+        for j in (i + 1)..len {
             if nums[i] + nums[j] == 2020 {
-                return nums[i] * nums[j]
+                return nums[i] * nums[j];
             }
         }
     }
@@ -33,10 +33,7 @@ fn part_two(nums: &[usize]) -> usize {
 //
 // Everything below this point can be moved into a template
 //
-pub fn run(
-    input: &str,
-    runner: &Runner,
-) -> Result<()> {
+pub fn run(input: &str, runner: &Runner) -> Result<()> {
     let input = parse(input)?;
     runner.part_one(|| part_one(&input));
     runner.part_two(|| part_two(&input));
