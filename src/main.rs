@@ -18,7 +18,7 @@ mod prelude {
 }
 
 const CACHE_DIR: &str = "/Users/cwbriones/.advent-of-code";
-const YEAR: usize = 20;
+const YEAR: usize = 21;
 
 fn cached<F>(key: &str, f: F) -> Result<String>
 where
@@ -91,8 +91,8 @@ fn main() -> Result<()> {
         }
     }
     return match args.day {
-        Some(d) if d < 1 || d > 25 => Err(anyhow!("invalid value for day: {}", d)),
-        Some(d) => dispatch(d, args.part),
+        Some(d) if (1..=25).contains(&d) => dispatch(d, args.part),
+        Some(d) => Err(anyhow!("invalid value for day: {}", d)),
         None => (1..25)
             .map(|d| dispatch(d, args.part))
             .collect::<Result<Vec<()>>>()
@@ -156,17 +156,17 @@ impl Runner {
 }
 
 fn display_duration(duration: std::time::Duration) -> String {
-    let val = duration.as_micros();
+    let val = duration.as_nanos();
     let mut divisor = 1;
 
-    let mut unit = "µs";
-    let units: &[(&str, u128)] = &[("ms", 1000), ("s", 1000)];
+    let mut unit = "ns";
+    let units: &[&str] = &["µs", "ms", "s"];
 
-    for (u, conversion) in units {
-        if val < *conversion {
+    for u in units {
+        if val / divisor < 1000 {
             break;
         }
-        divisor *= conversion;
+        divisor *= 1000;
         unit = u;
     }
     return format!("{}{}", val / divisor, unit);
