@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::io::Read;
 use std::path::Path;
 
@@ -6,6 +7,7 @@ use anyhow::Context;
 use anyhow::Result;
 
 mod day1;
+mod day2;
 
 mod prelude {
     pub use anyhow::{
@@ -75,12 +77,22 @@ use structopt::StructOpt;
 
 #[derive(StructOpt)]
 struct Args {
-    // #[structopt(parse(from_os_str))]
-    // input:  Option<PathBuf>,
     #[structopt(short, long)]
     day: Option<usize>,
     #[structopt(short, long)]
     part: Option<usize>,
+    #[structopt(short, long)]
+    input: Option<String>,
+}
+
+fn read_input(path: &str) -> Result<String> {
+    if path == "-" {
+        let mut buf = String::new();
+        std::io::stdin().read_to_string(&mut buf)?;
+        Ok(buf)
+    } else {
+        std::fs::read_to_string(path).map_err(Into::into)
+    }
 }
 
 fn main() -> Result<()> {
@@ -90,22 +102,32 @@ fn main() -> Result<()> {
             return Err(anyhow!("invalid value for part: {}", p));
         }
     }
+    let input = if let Some(ref path) = args.input {
+        Some(read_input(path)?)
+    } else {
+        None
+    };
+    let input_ref = input.as_ref().map(Cow::from);
     return match args.day {
-        Some(d) if (1..=25).contains(&d) => dispatch(d, args.part),
+        Some(d) if (1..=25).contains(&d) => dispatch(d, args.part, input_ref.clone()),
         Some(d) => Err(anyhow!("invalid value for day: {}", d)),
         None => (1..25)
-            .map(|d| dispatch(d, args.part))
+            .map(|d| dispatch(d, args.part, input_ref.clone()))
             .collect::<Result<Vec<()>>>()
             .map(|_| ()),
     };
 }
 
-fn dispatch(day: usize, part: Option<usize>) -> Result<()> {
+fn dispatch(day: usize, part: Option<usize>, input: Option<Cow<str>>) -> Result<()> {
     let cache_key = format!("input/20{}/{}", YEAR, day);
-    let input = cached(&cache_key, || fetch_input(day))?;
+    let input = match input {
+        Some(i) => i,
+        None => cached(&cache_key, || fetch_input(day))?.into(),
+    };
     let runner = Runner { day, part };
     match day {
         1 => day1::run(&input, &runner),
+        2 => day2::run(&input, &runner),
         d => return Err(anyhow!("day {} is not implemented", d)),
     }
 }
