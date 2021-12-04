@@ -8,6 +8,8 @@ use anyhow::Result;
 
 mod day1;
 mod day2;
+mod day3;
+mod day4;
 
 mod prelude {
     pub use anyhow::{
@@ -15,6 +17,7 @@ mod prelude {
         Context,
         Result,
     };
+    pub use fxhash::FxHashMap as HashMap;
 
     pub use crate::Runner;
 }
@@ -128,6 +131,8 @@ fn dispatch(day: usize, part: Option<usize>, input: Option<Cow<str>>) -> Result<
     match day {
         1 => day1::run(&input, &runner),
         2 => day2::run(&input, &runner),
+        3 => day3::run(&input, &runner),
+        4 => day4::run(&input, &runner),
         d => return Err(anyhow!("day {} is not implemented", d)),
     }
 }
