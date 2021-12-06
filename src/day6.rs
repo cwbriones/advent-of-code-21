@@ -1,38 +1,64 @@
 use crate::prelude::*;
 
-fn parse(input: &str) -> Vec<usize> {
-    input
-        .trim()
-        .split(',')
-        .map(|s| s.parse::<usize>().unwrap())
-        .collect()
-}
+fn parse(input: &str) -> [usize; 9] {
+    let mut counts = [0; 9];
+    let fish = input.trim().split(',').map(|s| s.parse::<usize>().unwrap());
 
-fn part_one(mut fish: Vec<usize>) -> usize {
-    // Brute force
-    let mut new_fish = Vec::new();
-    for _ in 0..80 {
-        new_fish.clear();
-        for f in &mut fish {
-            if *f == 0 {
-                *f = 6;
-                new_fish.push(8);
-                continue;
-            }
-            *f -= 1;
-        }
-        fish.extend_from_slice(&new_fish[..]);
+    for f in fish {
+        counts[f] += 1;
     }
-    fish.len()
+    counts
 }
 
-fn part_two(fish: Vec<usize>) -> usize {
-    fish[0]
+fn part_one(mut fish: [usize; 9]) -> usize {
+    iterate(&mut fish, 80);
+    fish.iter().sum::<usize>()
+}
+
+fn part_two(mut fish: [usize; 9]) -> usize {
+    iterate(&mut fish, 256);
+    fish.iter().sum::<usize>()
+}
+
+fn iterate(fish: &mut [usize; 9], n_days: usize) {
+    let mut days = 0;
+    loop {
+        // Walk through the list to the first non-zero entry.
+        let (i, n) = fish
+            .iter()
+            .cloned()
+            .enumerate()
+            .find(|(_, f)| *f > 0)
+            .unwrap();
+
+        // Process i + 1 days by shifting all the counters downward
+        for j in 0..(9 - i - 1) {
+            fish[j] = fish[j + i + 1];
+        }
+        for f in &mut fish[(9 - i - 1)..9] {
+            *f = 0;
+        }
+        // Finally, update i=6 to reset the fish at the start and i=8
+        // to account for the newly-created fish.
+        fish[6] += n;
+        fish[8] += n;
+
+        days += i + 1;
+        if days >= n_days {
+            // We overshot, and that means a full cycle wouldn't
+            // have completed anyway.
+            if days > n_days {
+                fish[6] -= n;
+                fish[8] -= n;
+            }
+            return;
+        }
+    }
 }
 
 pub fn run(input: &str, runner: &Runner) -> Result<()> {
     let input = parse(input);
-    runner.part_one(|| part_one(input.clone()));
+    runner.part_one(|| part_one(input));
     runner.part_two(|| part_two(input));
     Ok(())
 }
