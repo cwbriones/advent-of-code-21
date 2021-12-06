@@ -32,12 +32,8 @@ fn iterate(fish: &mut [usize; 9], n_days: usize) {
             .unwrap();
 
         // Process i + 1 days by shifting all the counters downward
-        for j in 0..(9 - i - 1) {
-            fish[j] = fish[j + i + 1];
-        }
-        for f in &mut fish[(9 - i - 1)..9] {
-            *f = 0;
-        }
+        fish.rotate_left(1);
+        fish[(9 - i - 1)..9].fill(0);
         // Finally, update i=6 to reset the fish at the start and i=8
         // to account for the newly-created fish.
         fish[6] += n;
