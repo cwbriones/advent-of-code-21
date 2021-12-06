@@ -11,6 +11,7 @@ mod day2;
 mod day3;
 mod day4;
 mod day5;
+mod day6;
 
 mod prelude {
     pub use anyhow::{
@@ -135,6 +136,7 @@ fn dispatch(day: usize, part: Option<usize>, input: Option<Cow<str>>) -> Result<
         3 => day3::run(&input, &runner),
         4 => day4::run(&input, &runner),
         5 => day5::run(&input, &runner),
+        6 => day6::run(&input, &runner),
         d => return Err(anyhow!("day {} is not implemented", d)),
     }
 }
