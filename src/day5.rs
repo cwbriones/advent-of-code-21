@@ -12,14 +12,14 @@ impl Line {
     }
 
     fn is_simple(&self) -> bool {
-        let dx = sign(self.end.0 - self.start.0);
-        let dy = sign(self.end.1 - self.start.1);
+        let dx = self.end.0.cmp(&self.start.0) as isize;
+        let dy = self.end.1.cmp(&self.start.1) as isize;
         dx == 0 || dy == 0
     }
 
     fn points(&self) -> impl Iterator<Item = (isize, isize)> {
-        let dx = sign(self.end.0 - self.start.0);
-        let dy = sign(self.end.1 - self.start.1);
+        let dx = self.end.0.cmp(&self.start.0) as isize;
+        let dy = self.end.1.cmp(&self.start.1) as isize;
 
         let len = if dx != 0 {
             (self.end.0 - self.start.0) / dx
@@ -29,14 +29,6 @@ impl Line {
 
         let start = self.start;
         (0isize..=len).map(move |i| (start.0 + dx * i, start.1 + dy * i))
-    }
-}
-
-fn sign(n: isize) -> isize {
-    match n {
-        0 => 0,
-        _ if n > 0 => 1,
-        _ => -1,
     }
 }
 

@@ -21,34 +21,13 @@ fn part_two(mut fish: [usize; 9]) -> usize {
 }
 
 fn iterate(fish: &mut [usize; 9], n_days: usize) {
-    let mut days = 0;
-    loop {
-        // Walk through the list to the first non-zero entry.
-        let (i, n) = fish
-            .iter()
-            .cloned()
-            .enumerate()
-            .find(|(_, f)| *f > 0)
-            .unwrap();
-
-        // Process i + 1 days by shifting all the counters downward
-        fish.rotate_left(1);
-        fish[(9 - i - 1)..9].fill(0);
-        // Finally, update i=6 to reset the fish at the start and i=8
-        // to account for the newly-created fish.
-        fish[6] += n;
-        fish[8] += n;
-
-        days += i + 1;
-        if days >= n_days {
-            // We overshot, and that means a full cycle wouldn't
-            // have completed anyway.
-            if days > n_days {
-                fish[6] -= n;
-                fish[8] -= n;
-            }
-            return;
-        }
+    for _ in 0..n_days {
+        // Process a day by shifting all the counters downward
+        let n = fish[0];
+        fish[..7].rotate_left(1);
+        fish[6] += fish[7];
+        fish[7] = fish[8];
+        fish[8] = n;
     }
 }
 
