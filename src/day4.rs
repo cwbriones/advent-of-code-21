@@ -104,7 +104,7 @@ impl Game {
 
 fn parse(input: &str) -> Result<Game> {
     let mut lines = input.lines().peekable();
-    let nums = split_nums(lines.next().expect("nums"), ',').expect("parse nums");
+    let nums = parse_split::<usize>(lines.next().expect("nums"), ',').expect("parse nums");
 
     lines.next(); // skip newline
 
@@ -125,17 +125,10 @@ where
             Some(line) if !line.is_empty() => line,
             _ => break,
         };
-        let row = split_nums(line, ' ').unwrap();
+        let row = parse_split::<usize>(line, ' ').unwrap();
         rows.push(row)
     }
     Board::new(rows)
-}
-
-fn split_nums(nums: &str, delim: char) -> Result<Vec<usize>, std::num::ParseIntError> {
-    nums.split(delim)
-        .filter(|s| !s.is_empty())
-        .map(|s| s.parse::<usize>())
-        .collect()
 }
 
 fn part_one(game: &mut Game) -> usize {

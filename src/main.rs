@@ -12,8 +12,11 @@ mod day3;
 mod day4;
 mod day5;
 mod day6;
+mod day7;
 
 mod prelude {
+    use std::str::FromStr;
+
     pub use anyhow::{
         anyhow,
         Context,
@@ -22,6 +25,16 @@ mod prelude {
     pub use fxhash::FxHashMap as HashMap;
 
     pub use crate::Runner;
+
+    pub fn parse_split<T>(nums: &str, delim: char) -> Result<Vec<T>, <T as FromStr>::Err>
+    where
+        T: FromStr,
+    {
+        nums.split(delim)
+            .filter(|s| !s.is_empty())
+            .map(|s| s.parse::<T>())
+            .collect()
+    }
 }
 
 const CACHE_DIR: &str = "/Users/cwbriones/.advent-of-code";
@@ -137,6 +150,7 @@ fn dispatch(day: usize, part: Option<usize>, input: Option<Cow<str>>) -> Result<
         4 => day4::run(&input, &runner),
         5 => day5::run(&input, &runner),
         6 => day6::run(&input, &runner),
+        7 => day7::run(&input, &runner),
         d => return Err(anyhow!("day {} is not implemented", d)),
     }
 }
