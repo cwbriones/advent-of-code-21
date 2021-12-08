@@ -13,6 +13,7 @@ mod day4;
 mod day5;
 mod day6;
 mod day7;
+mod day8;
 
 mod prelude {
     use std::str::FromStr;
@@ -23,6 +24,7 @@ mod prelude {
         Result,
     };
     pub use fxhash::FxHashMap as HashMap;
+    pub use fxhash::FxHashSet as HashSet;
 
     pub use crate::Runner;
 
@@ -61,7 +63,7 @@ fn fetch_input(day: usize) -> Result<String> {
     let token = get_session_token()?;
     let url = format!("https://adventofcode.com/20{}/day/{}/input", YEAR, day);
     let res = ureq::get(&url)
-        .set("Cookie", &format!("session={}", token))
+        .set("Cookie", &format!("session={}", token.trim()))
         .call()?;
     if res.status() != 200 {
         return Err(anyhow!("unexpected status code: {}", res.status()));
@@ -151,6 +153,7 @@ fn dispatch(day: usize, part: Option<usize>, input: Option<Cow<str>>) -> Result<
         5 => day5::run(&input, &runner),
         6 => day6::run(&input, &runner),
         7 => day7::run(&input, &runner),
+        8 => day8::run(&input, &runner),
         d => return Err(anyhow!("day {} is not implemented", d)),
     }
 }
