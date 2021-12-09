@@ -14,6 +14,7 @@ mod day5;
 mod day6;
 mod day7;
 mod day8;
+mod day9;
 
 mod prelude {
     use std::str::FromStr;
@@ -154,6 +155,7 @@ fn dispatch(day: usize, part: Option<usize>, input: Option<Cow<str>>) -> Result<
         6 => day6::run(&input, &runner),
         7 => day7::run(&input, &runner),
         8 => day8::run(&input, &runner),
+        9 => day9::run(&input, &runner),
         d => return Err(anyhow!("day {} is not implemented", d)),
     }
 }
