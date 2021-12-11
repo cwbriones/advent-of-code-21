@@ -8,6 +8,7 @@ use anyhow::Result;
 
 mod day1;
 mod day10;
+mod day11;
 mod day2;
 mod day3;
 mod day4;
@@ -159,6 +160,7 @@ fn dispatch(day: usize, part: Option<usize>, input: Option<Cow<str>>) -> Result<
         8 => day8::run(&input, &runner),
         9 => day9::run(&input, &runner),
         10 => day10::run(&input, &runner),
+        11 => day11::run(&input, &runner),
         d => return Err(anyhow!("day {} is not implemented", d)),
     }
 }

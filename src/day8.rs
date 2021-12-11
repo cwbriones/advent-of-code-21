@@ -64,12 +64,13 @@ fn part_one(cases: Vec<Case>) -> usize {
 }
 
 fn part_two(cases: Vec<Case>) -> usize {
-    let mut total = 0;
-    for case in &cases {
-        let sol = solve(&case.examples).expect("no solution found");
-        total += to_digits(&case.output, &sol);
-    }
-    total
+    cases
+        .iter()
+        .map(|case| {
+            let sol = solve(&case.examples).expect("no solution found");
+            to_digits(&case.output, &sol)
+        })
+        .sum()
 }
 
 fn to_digits(seen: &[String], mapping: &[char]) -> usize {
