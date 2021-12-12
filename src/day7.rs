@@ -1,22 +1,19 @@
 use crate::prelude::*;
 
-pub fn run(input: &str, runner: &Runner) -> Result<()> {
-    let mut input = parse(input.trim());
-    runner.part_one(|| part_one(&mut input));
-    runner.part_two(|| part_two(&mut input));
-    Ok(())
+pub fn run(runner: &Runner) {
+    runner.run(parse, part_one, part_two);
 }
 
 fn parse(input: &str) -> Vec<usize> {
     parse_split(input, ',').unwrap()
 }
 
-fn part_one(input: &mut [usize]) -> usize {
-    solve(input, |x| x)
+fn part_one(mut input: Vec<usize>) -> usize {
+    solve(&mut input, |x| x)
 }
 
-fn part_two(input: &mut [usize]) -> usize {
-    solve(input, |x| x * (x + 1) / 2)
+fn part_two(mut input: Vec<usize>) -> usize {
+    solve(&mut input, |x| x * (x + 1) / 2)
 }
 
 fn solve<F>(input: &mut [usize], step_cost: F) -> usize

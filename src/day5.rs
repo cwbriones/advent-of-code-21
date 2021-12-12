@@ -48,7 +48,7 @@ fn parse_line(line: &str) -> Line {
     Line::new((a1, a2), (b1, b2))
 }
 
-fn part_one(lines: &[Line]) -> usize {
+fn part_one(lines: Vec<Line>) -> usize {
     let mut counts = HashMap::default();
     lines
         .iter()
@@ -62,7 +62,7 @@ fn part_one(lines: &[Line]) -> usize {
     counts.values().filter(|v| **v > 1).count()
 }
 
-fn part_two(lines: &[Line]) -> usize {
+fn part_two(lines: Vec<Line>) -> usize {
     let mut counts = HashMap::default();
     lines.iter().flat_map(|l| l.points()).for_each(|p| {
         let c = counts.entry(p).or_insert(0);
@@ -72,11 +72,8 @@ fn part_two(lines: &[Line]) -> usize {
     counts.values().filter(|v| **v > 1).count()
 }
 
-pub fn run(input: &str, runner: &Runner) -> Result<()> {
-    let input = parse(input);
-    runner.part_one(|| part_one(&input));
-    runner.part_two(|| part_two(&input));
-    Ok(())
+pub fn run(runner: &Runner) {
+    runner.run(parse, part_one, part_two);
 }
 
 #[cfg(test)]

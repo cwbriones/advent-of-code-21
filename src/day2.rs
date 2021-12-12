@@ -1,13 +1,14 @@
 use crate::prelude::*;
 
+#[derive(Clone)]
 enum Step {
     Forward(usize),
     Down(usize),
     Up(usize),
 }
 
-fn parse(input: &str) -> Result<Vec<Step>> {
-    let steps = input
+fn parse(input: &str) -> Vec<Step> {
+    input
         .lines()
         .map(|line| {
             let mut parts = line.split(' ');
@@ -21,11 +22,10 @@ fn parse(input: &str) -> Result<Vec<Step>> {
                 m => panic!("unknown step {}", m),
             }
         })
-        .collect::<Vec<_>>();
-    Ok(steps)
+        .collect()
 }
 
-fn part_one(steps: &[Step]) -> usize {
+fn part_one(steps: Vec<Step>) -> usize {
     let mut pos = 0;
     let mut depth = 0;
 
@@ -39,7 +39,7 @@ fn part_one(steps: &[Step]) -> usize {
     pos * depth
 }
 
-fn part_two(steps: &[Step]) -> usize {
+fn part_two(steps: Vec<Step>) -> usize {
     let mut pos = 0;
     let mut depth = 0;
     let mut aim = 0;
@@ -57,13 +57,6 @@ fn part_two(steps: &[Step]) -> usize {
     pos * depth
 }
 
-//
-// Everything below this point can be moved into a template
-//
-
-pub fn run(input: &str, runner: &Runner) -> Result<()> {
-    let input = parse(input)?;
-    runner.part_one(|| part_one(&input));
-    runner.part_two(|| part_two(&input));
-    Ok(())
+pub fn run(runner: &Runner) {
+    runner.run(parse, part_one, part_two);
 }

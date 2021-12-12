@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::io::Read;
 use std::path::Path;
 
@@ -131,71 +130,72 @@ fn main() -> Result<()> {
     } else {
         None
     };
-    let input_ref = input.as_ref().map(Cow::from);
     return match args.day {
-        Some(d) if (1..=25).contains(&d) => dispatch(d, args.part, input_ref.clone()),
+        Some(d) if (1..=25).contains(&d) => dispatch(d, args.part, input),
         Some(d) => Err(anyhow!("invalid value for day: {}", d)),
         None => (1..25)
-            .map(|d| dispatch(d, args.part, input_ref.clone()))
+            .map(|d| dispatch(d, args.part, None))
             .collect::<Result<Vec<()>>>()
             .map(|_| ()),
     };
 }
 
-fn dispatch(day: usize, part: Option<usize>, input: Option<Cow<str>>) -> Result<()> {
+fn dispatch(day: usize, part: Option<usize>, input: Option<String>) -> Result<()> {
+    let run = match day {
+        1 => day1::run,
+        2 => day2::run,
+        3 => day3::run,
+        4 => day4::run,
+        5 => day5::run,
+        6 => day6::run,
+        7 => day7::run,
+        8 => day8::run,
+        9 => day9::run,
+        10 => day10::run,
+        11 => day11::run,
+        _ => return Ok(()),
+    };
     let cache_key = format!("input/20{}/{}", YEAR, day);
     let input = match input {
         Some(i) => i,
-        None => cached(&cache_key, || fetch_input(day))?.into(),
+        None => cached(&cache_key, || fetch_input(day))?,
     };
-    let runner = Runner { day, part };
-    match day {
-        1 => day1::run(&input, &runner),
-        2 => day2::run(&input, &runner),
-        3 => day3::run(&input, &runner),
-        4 => day4::run(&input, &runner),
-        5 => day5::run(&input, &runner),
-        6 => day6::run(&input, &runner),
-        7 => day7::run(&input, &runner),
-        8 => day8::run(&input, &runner),
-        9 => day9::run(&input, &runner),
-        10 => day10::run(&input, &runner),
-        11 => day11::run(&input, &runner),
-        d => return Err(anyhow!("day {} is not implemented", d)),
-    }
+    let runner = Runner {
+        input: input.trim(),
+        day,
+        part,
+    };
+    run(&runner);
+    Ok(())
 }
 
-pub struct Runner {
+pub struct Runner<'a> {
+    input: &'a str,
     day: usize,
     part: Option<usize>,
 }
 
-impl Runner {
-    pub fn part_one<F, D>(&self, f: F)
+impl<'a> Runner<'a> {
+    pub fn run<I, P, F1, F2>(&self, parse: P, part_one: F1, part_two: F2)
     where
-        F: FnOnce() -> D,
-        D: std::fmt::Display,
+        I: Clone,
+        P: Fn(&'a str) -> I,
+        F1: Fn(I) -> usize,
+        F2: Fn(I) -> usize,
     {
-        if let Some(1) | None = self.part {
-            self.run_part(1, f);
-        }
+        let i = parse(self.input);
+        self.run_part(1, || part_one(i.clone()));
+        self.run_part(2, || part_two(i));
     }
 
-    pub fn part_two<F, D>(&self, f: F)
+    fn run_part<F>(&self, part: usize, f: F)
     where
-        F: FnOnce() -> D,
-        D: std::fmt::Display,
+        F: FnOnce() -> usize,
     {
-        if let Some(2) | None = self.part {
-            self.run_part(2, f);
+        match self.part {
+            Some(p) if p != part => return,
+            _ => {}
         }
-    }
-
-    fn run_part<F, D>(&self, part: usize, f: F)
-    where
-        F: FnOnce() -> D,
-        D: std::fmt::Display,
-    {
         use std::time::Instant;
 
         let clock = Instant::now();

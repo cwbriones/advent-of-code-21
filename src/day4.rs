@@ -102,7 +102,7 @@ impl Game {
     }
 }
 
-fn parse(input: &str) -> Result<Game> {
+fn parse(input: &str) -> Game {
     let mut lines = input.lines().peekable();
     let nums = parse_split::<usize>(lines.next().expect("nums"), ',').expect("parse nums");
 
@@ -112,7 +112,7 @@ fn parse(input: &str) -> Result<Game> {
     while lines.peek().is_some() {
         boards.push(parse_board(&mut lines));
     }
-    Ok(Game { nums, boards })
+    Game { nums, boards }
 }
 
 fn parse_board<'a, I>(lines: &mut std::iter::Peekable<I>) -> Board
@@ -131,22 +131,16 @@ where
     Board::new(rows)
 }
 
-fn part_one(game: &mut Game) -> usize {
+fn part_one(mut game: Game) -> usize {
     game.run()
 }
 
-fn part_two(game: &mut Game) -> usize {
+fn part_two(mut game: Game) -> usize {
     game.run_all()
 }
-//
-// Everything below this point can be moved into a template
-//
 
-pub fn run(input: &str, runner: &Runner) -> Result<()> {
-    let mut input = parse(input)?;
-    runner.part_one(|| part_one(&mut input.clone()));
-    runner.part_two(|| part_two(&mut input));
-    Ok(())
+pub fn run(runner: &Runner) {
+    runner.run(parse, part_one, part_two);
 }
 
 #[cfg(test)]

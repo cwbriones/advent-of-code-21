@@ -18,11 +18,8 @@ static DIGITS: Lazy<HashMap<&'static str, usize>> = Lazy::new(|| {
     digits
 });
 
-pub fn run(input: &str, runner: &Runner) -> Result<()> {
-    let input = parse(input.trim())?;
-    runner.part_one(|| part_one(input.clone()));
-    runner.part_two(|| part_two(input));
-    Ok(())
+pub fn run(runner: &Runner) {
+    runner.run(parse, part_one, part_two);
 }
 
 #[derive(Debug, Clone)]
@@ -31,8 +28,12 @@ struct Case {
     output: Vec<String>,
 }
 
-fn parse(input: &str) -> Result<Vec<Case>> {
-    input.lines().map(|l| parse_case(l.trim())).collect()
+fn parse(input: &str) -> Vec<Case> {
+    input
+        .lines()
+        .map(|l| parse_case(l.trim()))
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
 }
 
 fn parse_case(line: &str) -> Result<Case> {

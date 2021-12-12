@@ -1,10 +1,7 @@
 use crate::prelude::*;
 
-pub fn run(input: &str, runner: &Runner) -> Result<()> {
-    let input = parse(input.trim());
-    runner.part_one(|| part_one(&input));
-    runner.part_two(|| part_two(&input));
-    Ok(())
+pub fn run(runner: &Runner) {
+    runner.run(parse, part_one, part_two);
 }
 
 fn parse(input: &str) -> Vec<Vec<usize>> {
@@ -18,16 +15,16 @@ fn parse(input: &str) -> Vec<Vec<usize>> {
         .collect::<Vec<_>>()
 }
 
-fn part_one(input: &[Vec<usize>]) -> usize {
+fn part_one(input: Vec<Vec<usize>>) -> usize {
     let mut risk = 0;
-    for (x, y) in low_points(input) {
+    for (x, y) in low_points(&input) {
         risk += input[y][x] + 1;
     }
     risk
 }
 
-fn part_two(input: &[Vec<usize>]) -> usize {
-    let points = low_points(input);
+fn part_two(input: Vec<Vec<usize>>) -> usize {
+    let points = low_points(&input);
 
     let mut stack = Vec::new();
     let mut visited = HashSet::default();

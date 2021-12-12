@@ -1,10 +1,7 @@
 use crate::prelude::*;
 
-pub fn run(input: &str, runner: &Runner) -> Result<()> {
-    let input = parse(input);
-    runner.part_one(|| part_one(input.clone()));
-    runner.part_two(|| part_two(input));
-    Ok(())
+pub fn run(runner: &Runner) {
+    runner.run(parse, part_one, part_two);
 }
 
 fn parse(input: &str) -> Vec<Vec<u32>> {

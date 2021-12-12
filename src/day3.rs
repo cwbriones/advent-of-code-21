@@ -1,14 +1,13 @@
 use crate::prelude::*;
 
-fn parse(input: &str) -> Result<Vec<&str>> {
-    let nums = input.lines().map(|l| l.trim()).collect::<Vec<_>>();
-    Ok(nums)
+fn parse(input: &str) -> Vec<&str> {
+    input.lines().map(|l| l.trim()).collect()
 }
 
-fn part_one(nums: &[&str]) -> usize {
+fn part_one(nums: Vec<&str>) -> usize {
     let len = nums[0].len();
     let mut counts = vec![0; len];
-    for &n in nums {
+    for n in &nums {
         for (i, c) in n.chars().enumerate() {
             if c == '1' {
                 counts[i] += 1
@@ -26,7 +25,7 @@ fn part_one(nums: &[&str]) -> usize {
     gamma * epsilon
 }
 
-fn part_two(nums: &[&str]) -> usize {
+fn part_two(nums: Vec<&str>) -> usize {
     let mut oxy = nums.iter().copied().collect::<Vec<_>>();
     let mut co = nums.iter().copied().collect::<Vec<_>>();
     filter(&mut oxy, false);
@@ -62,15 +61,8 @@ fn from_binary(s: &str) -> usize {
     usize::from_str_radix(s, 2).unwrap()
 }
 
-//
-// Everything below this point can be moved into a template
-//
-
-pub fn run(input: &str, runner: &Runner) -> Result<()> {
-    let input = parse(input)?;
-    runner.part_one(|| part_one(&input));
-    runner.part_two(|| part_two(&input));
-    Ok(())
+pub fn run(runner: &Runner) {
+    runner.run(parse, part_one, part_two);
 }
 
 #[cfg(test)]

@@ -1,17 +1,14 @@
 use crate::prelude::*;
 
-pub fn run(input: &str, runner: &Runner) -> Result<()> {
-    let input = parse(input);
-    runner.part_one(|| part_one(&input));
-    runner.part_two(|| part_two(&input));
-    Ok(())
+pub fn run(runner: &Runner) {
+    runner.run(parse, part_one, part_two);
 }
 
 fn parse(input: &str) -> Vec<&str> {
     input.lines().map(|l| l.trim()).collect()
 }
 
-fn part_one(lines: &[&str]) -> usize {
+fn part_one(lines: Vec<&str>) -> usize {
     let points = [(')', 3), (']', 57), ('}', 1197), ('>', 25137)];
     lines
         .iter()
@@ -20,7 +17,7 @@ fn part_one(lines: &[&str]) -> usize {
         .sum::<usize>()
 }
 
-fn part_two(lines: &[&str]) -> usize {
+fn part_two(lines: Vec<&str>) -> usize {
     let points = [(')', 1), (']', 2), ('}', 3), ('>', 4)];
     let mut scores = lines
         .iter()
