@@ -69,16 +69,12 @@ fn search(
     }
     visited[node] = graph.small[node];
     let edges = graph.edges.get(&node);
-    let neighbors = edges
+    edges
         .iter()
         .flat_map(|v| v.iter().cloned())
         .filter(|&n| !visited[n] || can_visit_twice)
-        .collect::<Vec<_>>();
-    let mut total = 0;
-    for n in neighbors {
-        total += search(graph, n, visited, !visited[n] && can_visit_twice);
-    }
-    total
+        .map(|n| search(graph, n, visited, !visited[n] && can_visit_twice))
+        .sum()
 }
 
 pub fn run(runner: &Runner) {
