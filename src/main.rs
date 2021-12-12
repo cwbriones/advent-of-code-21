@@ -8,6 +8,7 @@ use anyhow::Result;
 mod day1;
 mod day10;
 mod day11;
+mod day12;
 mod day2;
 mod day3;
 mod day4;
@@ -153,6 +154,7 @@ fn dispatch(day: usize, part: Option<usize>, input: Option<String>) -> Result<()
         9 => day9::run,
         10 => day10::run,
         11 => day11::run,
+        12 => day12::run,
         _ => return Ok(()),
     };
     let cache_key = format!("input/20{}/{}", YEAR, day);
