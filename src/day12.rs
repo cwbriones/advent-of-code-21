@@ -48,7 +48,6 @@ fn parse(input: &str) -> Graph {
 }
 
 fn part_one(graph: Graph) -> usize {
-    println!("{:?}", graph);
     let visited = [false; MAX_NODES];
     search(&graph, graph.start, visited, false)
 }

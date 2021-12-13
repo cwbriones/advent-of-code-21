@@ -9,6 +9,7 @@ mod day1;
 mod day10;
 mod day11;
 mod day12;
+mod day13;
 mod day2;
 mod day3;
 mod day4;
@@ -155,6 +156,7 @@ fn dispatch(day: usize, part: Option<usize>, input: Option<String>) -> Result<()
         10 => day10::run,
         11 => day11::run,
         12 => day12::run,
+        13 => day13::run,
         _ => return Ok(()),
     };
     let cache_key = format!("input/20{}/{}", YEAR, day);
