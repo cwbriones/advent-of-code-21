@@ -10,6 +10,7 @@ mod day10;
 mod day11;
 mod day12;
 mod day13;
+mod day14;
 mod day2;
 mod day3;
 mod day4;
@@ -143,21 +144,25 @@ fn main() -> Result<()> {
 }
 
 fn dispatch(day: usize, part: Option<usize>, input: Option<String>) -> Result<()> {
-    let run = match day {
-        1 => day1::run,
-        2 => day2::run,
-        3 => day3::run,
-        4 => day4::run,
-        5 => day5::run,
-        6 => day6::run,
-        7 => day7::run,
-        8 => day8::run,
-        9 => day9::run,
-        10 => day10::run,
-        11 => day11::run,
-        12 => day12::run,
-        13 => day13::run,
-        _ => return Ok(()),
+    let entry_points = [
+        day1::run,
+        day2::run,
+        day3::run,
+        day4::run,
+        day5::run,
+        day6::run,
+        day7::run,
+        day8::run,
+        day9::run,
+        day10::run,
+        day11::run,
+        day12::run,
+        day13::run,
+        day14::run,
+    ];
+    let run = match entry_points.get(day - 1) {
+        Some(r) => r,
+        None => return Ok(()),
     };
     let cache_key = format!("input/20{}/{}", YEAR, day);
     let input = match input {
