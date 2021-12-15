@@ -21,6 +21,7 @@ mod day7;
 mod day8;
 mod day9;
 mod iter;
+mod search;
 
 mod prelude {
     use std::str::FromStr;
