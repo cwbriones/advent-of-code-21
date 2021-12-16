@@ -1,5 +1,25 @@
 use crate::prelude::*;
 
+fn parse(input: &str) -> &str {
+    input
+}
+
+fn part_one(message: &str) -> usize {
+    let msg = message.chars().filter_map(hex_to_bin).collect::<String>();
+    let mut parser = Parser { msg: &msg };
+    parser.packet().unwrap().version_sum()
+}
+
+fn part_two(message: &str) -> usize {
+    let msg = message.chars().filter_map(hex_to_bin).collect::<String>();
+    let mut parser = Parser { msg: &msg };
+    parser.packet().unwrap().eval()
+}
+
+pub fn run(runner: &Runner) {
+    runner.run(parse, part_one, part_two);
+}
+
 #[derive(Debug, Clone, PartialEq)]
 struct Packet {
     version: usize,
@@ -79,110 +99,84 @@ fn hex_to_bin(c: char) -> Option<&'static str> {
     Some(bin)
 }
 
-fn parse(input: &str) -> &str {
-    input
+struct Parser<'a> {
+    msg: &'a str,
 }
 
-fn part_one(message: &str) -> usize {
-    let out = message.chars().filter_map(hex_to_bin).collect::<String>();
-    let (packet, _) = packet(&out).unwrap();
-    packet.version_sum()
-}
-
-fn part_two(message: &str) -> usize {
-    let out = message.chars().filter_map(hex_to_bin).collect::<String>();
-    let (packet, _) = packet(&out).unwrap();
-    packet.eval()
-}
-
-fn packet(msg: &str) -> Result<(Packet, &str)> {
-    let (version, msg) = fixint(msg, 3).context("version")?;
-    let (id, msg) = fixint(msg, 3).context("id")?;
-    let (kind, msg) = match id {
-        4 => literal(msg).context("literal"),
-        _ if (0..=7).contains(&id) => {
-            let opcode = match id {
-                0 => Opcode::Sum,
-                1 => Opcode::Product,
-                2 => Opcode::Min,
-                3 => Opcode::Max,
-                5 => Opcode::GreaterThan,
-                6 => Opcode::LessThan,
-                7 => Opcode::Equal,
-                _ => unreachable!("guarded by outer block"),
-            };
-            operator(opcode, msg).context("operator")
-        }
-        _ => return Err(anyhow!("unknown id: {}", id)),
-    }?;
-    Ok((Packet { version, kind }, msg))
-}
-
-fn packets(mut msg: &str) -> Result<(Vec<Packet>, &str)> {
-    let mut results = Vec::new();
-    while !msg.is_empty() {
-        let (packet, rest) = packet(msg)?;
-        msg = rest;
-        results.push(packet);
+impl<'a> Parser<'a> {
+    fn packet(&mut self) -> Result<Packet> {
+        let version = self.fixint(3).context("version")?;
+        let id = self.fixint(3).context("id")?;
+        let kind = self.kind(id)?;
+        Ok(Packet { version, kind })
     }
-    Ok((results, msg))
-}
 
-fn literal(msg: &str) -> Result<(PacketKind, &str)> {
-    let (val, msg) = varint(msg)?;
-    Ok((PacketKind::Literal(val), msg))
-}
-
-fn operator(opcode: Opcode, msg: &str) -> Result<(PacketKind, &str)> {
-    let (length_id, msg) = advance(msg, 1)?;
-    if length_id == "0" {
-        let (total_len, msg) = fixint(msg, 15).context("subpacket len")?;
-        let (raw_subpackets, msg) = advance(msg, total_len)?;
-        let (subpackets, rest) = packets(raw_subpackets).context("reading subpackets")?;
-        if !rest.is_empty() {
-            return Err(anyhow!("did not consume expected length of subpackets"));
-        }
-        Ok((PacketKind::Operator(opcode, subpackets), msg))
-    } else {
-        let (num_subpackets, mut msg) = fixint(msg, 11).context("subpacket count")?;
-        let mut subpackets = Vec::new();
-        for _ in 0..num_subpackets {
-            let (packet, rest) = packet(msg).context("reading subpackets")?;
-            msg = rest;
-            subpackets.push(packet);
-        }
-        Ok((PacketKind::Operator(opcode, subpackets), msg))
+    fn kind(&mut self, id: usize) -> Result<PacketKind> {
+        let opcode = match id {
+            0 => Opcode::Sum,
+            1 => Opcode::Product,
+            2 => Opcode::Min,
+            3 => Opcode::Max,
+            5 => Opcode::GreaterThan,
+            6 => Opcode::LessThan,
+            7 => Opcode::Equal,
+            4 => return self.varint().map(PacketKind::Literal).context("literal"),
+            _ => return Err(anyhow!("unknown id: {}", id)),
+        };
+        self.operator(opcode).context("operator")
     }
-}
 
-fn fixint(msg: &str, n: usize) -> Result<(usize, &str)> {
-    let (raw, rest) = advance(msg, n)?;
-    let val = usize::from_str_radix(raw, 2)?;
-    Ok((val, rest))
-}
+    fn operator(&mut self, opcode: Opcode) -> Result<PacketKind> {
+        let length_id = self.advance(1)?;
+        if length_id == "0" {
+            let total_len = self.fixint(15).context("subpacket len")?;
 
-fn varint(mut msg: &str) -> Result<(usize, &str)> {
-    let mut total = 0;
-    loop {
-        let (frame, rest) = fixint(msg, 5)?;
-        msg = rest;
-        total = (total << 4) | (frame & 15);
-        if (frame & (1 << 4)) == 0 {
-            break;
+            let msg = self.advance(total_len)?;
+            let mut subparser = Parser { msg };
+            let mut subpackets = Vec::new();
+            loop {
+                match subparser.packet() {
+                    Ok(p) => subpackets.push(p),
+                    Err(_) if subparser.msg.chars().all(|c| c == '0') => break,
+                    Err(e) => return Err(e).context("subpacket"),
+                }
+            }
+            Ok(PacketKind::Operator(opcode, subpackets))
+        } else {
+            let num_subpackets = self.fixint(11).context("subpacket count")?;
+            let subpackets = (0..num_subpackets)
+                .map(|_| self.packet())
+                .collect::<Result<Vec<_>, _>>()
+                .context("subpacket")?;
+            Ok(PacketKind::Operator(opcode, subpackets))
         }
     }
-    Ok((total, msg))
-}
 
-fn advance(msg: &str, n: usize) -> Result<(&str, &str)> {
-    if msg.len() < n {
-        return Err(anyhow!("unexpected end of input"));
+    fn fixint(&mut self, n: usize) -> Result<usize> {
+        self.advance(n)
+            .and_then(|bin| usize::from_str_radix(bin, 2).map_err(Into::into))
     }
-    Ok(msg.split_at(n))
-}
 
-pub fn run(runner: &Runner) {
-    runner.run(parse, part_one, part_two);
+    fn varint(&mut self) -> Result<usize> {
+        let mut total = 0;
+        loop {
+            let frame = self.fixint(5)?;
+            total = (total << 4) | (frame & 15);
+            if (frame & (1 << 4)) == 0 {
+                break;
+            }
+        }
+        Ok(total)
+    }
+
+    fn advance(&mut self, n: usize) -> Result<&str> {
+        if self.msg.len() < n {
+            return Err(anyhow!("unexpected end of input"));
+        }
+        let (head, tail) = self.msg.split_at(n);
+        self.msg = tail;
+        Ok(head)
+    }
 }
 
 #[cfg(test)]
