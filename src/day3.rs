@@ -82,13 +82,13 @@ mod test {
 
     #[test]
     fn part_one() {
-        let input = super::parse(INPUT).expect("parse");
-        assert_eq!(super::part_one(&input), 198)
+        let input = super::parse(INPUT);
+        assert_eq!(super::part_one(input), 198)
     }
 
     #[test]
     fn part_two() {
-        let input = super::parse(INPUT).expect("parse");
-        assert_eq!(super::part_two(&input), 230)
+        let input = super::parse(INPUT);
+        assert_eq!(super::part_two(input), 230)
     }
 }

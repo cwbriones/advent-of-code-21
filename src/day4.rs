@@ -170,12 +170,12 @@ mod test {
     #[test]
     fn part_one() {
         let mut input = super::parse(INPUT).expect("parse");
-        assert_eq!(super::part_one(&mut input), 4512)
+        assert_eq!(super::part_one(input), 4512)
     }
 
     #[test]
     fn part_two() {
         let mut input = super::parse(INPUT).expect("parse");
-        assert_eq!(super::part_two(&mut input), 1924)
+        assert_eq!(super::part_two(input), 1924)
     }
 }

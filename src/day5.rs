@@ -94,12 +94,12 @@ mod test {
     #[test]
     fn part_one() {
         let input = super::parse(INPUT);
-        assert_eq!(super::part_one(&input), 5)
+        assert_eq!(super::part_one(input), 5)
     }
 
     #[test]
     fn part_two() {
         let input = super::parse(INPUT);
-        assert_eq!(super::part_two(&input), 12)
+        assert_eq!(super::part_two(input), 12)
     }
 }
