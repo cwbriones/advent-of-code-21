@@ -13,6 +13,7 @@ mod day13;
 mod day14;
 mod day15;
 mod day16;
+mod day17;
 mod day2;
 mod day3;
 mod day4;
@@ -164,6 +165,7 @@ fn dispatch(day: usize, part: Option<usize>, input: Option<String>) -> Result<()
         day14::run,
         day15::run,
         day16::run,
+        day17::run,
     ];
     let run = match entry_points.get(day - 1) {
         Some(r) => r,
