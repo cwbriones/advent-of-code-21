@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -9,45 +11,35 @@ impl Number {
     }
 
     fn reduce(&mut self) {
-        loop {
-            if self.explode(1).is_some() {
-                continue;
-            }
-            if self.split().is_some() {
-                continue;
-            }
-            return;
-        }
+        while self
+            .explode(1)
+            .map(|_| ())
+            .or_else(|| self.split())
+            .is_some()
+        {}
     }
 
     fn explode(&mut self, depth: usize) -> Option<(usize, usize)> {
-        // left exploded
         let exp = self.0.explode(depth);
-        if let (Some((lefte, righte)), Number(_, right)) = (exp, &mut *self) {
-            if righte > 0 {
-                right.add_left(righte);
-            }
-            // println!("left exploded!: {:?}", (lefte, righte));
-            return Some((lefte, 0));
+        if let (Some((a, b)), Number(_, right)) = (exp, &mut *self) {
+            // left sibling exploded
+            right.add_left(b);
+            return Some((a, 0));
         }
         if exp.is_some() {
             return exp;
         }
-        // right exploded
         let exp = self.1.explode(depth);
-        if let (Some((lefte, righte)), Number(left, _)) = (exp, &mut *self) {
-            if lefte > 0 {
-                left.add_right(lefte);
-            }
-            // println!("right exploded!: {:?}", (lefte, righte));
-            return Some((0, righte));
+        if let (Some((a, b)), Number(left, _)) = (exp, &mut *self) {
+            // right sibling exploded
+            left.add_right(a);
+            return Some((0, b));
         }
         exp
     }
 
     fn split(&mut self) -> Option<()> {
-        let left = self.0.split();
-        if left.is_some() {
+        if let left @ Some(_) = self.0.split() {
             return left;
         }
         self.1.split()
@@ -60,23 +52,23 @@ impl Display for Number {
     }
 }
 
+fn add(a: Number, b: Number) -> Number {
+    let mut sum = Number(Inner::Number(Box::new(a)), Inner::Number(Box::new(b)));
+    sum.reduce();
+    sum
+}
+
 #[derive(Debug, Clone)]
 enum Inner {
     Val(usize),
     Number(Box<Number>),
 }
 
-use std::fmt::Display;
-
 impl Display for Inner {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Inner::Val(n) => {
-                write!(f, "{}", n)
-            }
-            Inner::Number(n) => {
-                write!(f, "[{},{}]", n.0, n.1)
-            }
+            Inner::Val(n) => write!(f, "{}", n),
+            Inner::Number(n) => write!(f, "[{},{}]", n.0, n.1),
         }
     }
 }
@@ -84,10 +76,10 @@ impl Display for Inner {
 impl Inner {
     fn explode(&mut self, depth: usize) -> Option<(usize, usize)> {
         match self {
-            Inner::Number(n) => match &**n {
-                Number(Inner::Val(left), Inner::Val(right)) if depth == 4 => {
+            Inner::Number(n) => match (&n.0, &n.1) {
+                (&Inner::Val(left), &Inner::Val(right)) if depth == 4 => {
                     let mut cleared = Inner::Val(0);
-                    let retval = (*left, *right);
+                    let retval = (left, right);
                     std::mem::swap(&mut cleared, self);
                     Some(retval)
                 }
@@ -100,41 +92,29 @@ impl Inner {
 
     fn add_right(&mut self, v: usize) {
         match self {
-            Inner::Number(n) => {
-                let Number(_, right) = &mut **n;
-                right.add_right(v);
-            }
+            Inner::Number(n) => n.1.add_right(v),
             Inner::Val(ref mut n) => *n += v,
         }
     }
 
     fn add_left(&mut self, v: usize) {
         match self {
-            Inner::Number(n) => {
-                let Number(left, _) = &mut **n;
-                left.add_left(v);
-            }
+            Inner::Number(n) => n.0.add_left(v),
             Inner::Val(ref mut n) => *n += v,
         }
     }
 
     fn mag(&self) -> usize {
         match self {
-            Inner::Number(n) => 3 * n.0.mag() + 2 * n.1.mag(),
+            Inner::Number(n) => n.mag(),
             Inner::Val(n) => *n,
         }
     }
 
     fn split(&mut self) -> Option<()> {
         match self {
-            Inner::Number(n) => {
-                if let s @ Some(_) = n.0.split() {
-                    return s;
-                }
-                n.1.split()
-            }
+            Inner::Number(n) => n.split(),
             Inner::Val(n) if *n >= 10 => {
-                // println!("SPLITS: {}", n);
                 let left = *n / 2;
                 let right = left + (*n % 2);
                 *self = Inner::Number(Box::new(Number(Inner::Val(left), Inner::Val(right))));
@@ -146,34 +126,37 @@ impl Inner {
 }
 
 fn parse(input: &str) -> Vec<Number> {
-    let mut numbers = Vec::new();
-    for line in input.lines() {
-        let mut iter = line.trim_end().chars().peekable();
-        let n = parse_number(&mut iter).unwrap();
-        numbers.push(n);
-    }
-    numbers
+    input
+        .lines()
+        .map(|line| {
+            let mut iter = line.trim_end().chars().peekable();
+            parse_number(&mut iter).unwrap()
+        })
+        .collect()
 }
 
 fn parse_number<I>(s: &mut std::iter::Peekable<I>) -> Result<Number>
 where
     I: Iterator<Item = char>,
 {
-    match s.next() {
-        Some('[') => {}
-        _ => return Err(anyhow!("expected '['")),
-    }
+    expect_char(s, '[')?;
     let left = parse_inner(s).context("left")?;
-    match s.next() {
-        Some(',') => {}
-        _ => return Err(anyhow!("expected ','")),
-    }
+    expect_char(s, ',')?;
     let right = parse_inner(s).context("right")?;
-    match s.next() {
-        Some(']') => {}
-        _ => return Err(anyhow!("expected ']'")),
-    }
+    expect_char(s, ']')?;
     Ok(Number(left, right))
+}
+
+fn expect_char<I: Iterator<Item = char>>(iter: &mut I, c: char) -> Result<()> {
+    iter.next()
+        .ok_or_else(|| anyhow!("unexpected eof"))
+        .and_then(|c2| {
+            if c == c2 {
+                Ok(())
+            } else {
+                Err(anyhow!("expected '{}', got '{}'", c, c2))
+            }
+        })
 }
 
 fn parse_inner<I>(s: &mut std::iter::Peekable<I>) -> Result<Inner>
@@ -189,12 +172,6 @@ where
         }
         _ => Err(anyhow!("expected '[' or 0-9")),
     }
-}
-
-fn add(a: Number, b: Number) -> Number {
-    let mut sum = Number(Inner::Number(Box::new(a)), Inner::Number(Box::new(b)));
-    sum.reduce();
-    sum
 }
 
 fn part_one(ns: Vec<Number>) -> usize {
