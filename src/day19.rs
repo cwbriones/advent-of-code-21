@@ -22,22 +22,6 @@ impl Point {
     }
 }
 
-// struct Matrix(Point, Point, Point);
-//
-// impl Matrix {
-//     fn new(a: Point, b: Point, c: Point) -> Self {
-//         Matrix(a, b, c)
-//     }
-//
-//     fn mul(&self, p: Point) -> Point {
-//         Point(
-//             self.0 .0 * p.0 + self.0 .1 * p.1 + self.0 .2 * p.2,
-//             self.1 .0 * p.0 + self.1 .1 * p.1 + self.1 .2 * p.2,
-//             self.2 .0 * p.0 + self.2 .1 * p.1 + self.2 .2 * p.2,
-//         )
-//     }
-// }
-//
 fn parse(input: &str) -> Vec<Vec<Point>> {
     let mut lines = input.lines().peekable();
     let mut scanners = Vec::new();
@@ -73,39 +57,55 @@ where
 }
 
 fn part_one(scans: Vec<Vec<Point>>) -> usize {
-    let mut transforms = HashMap::<(usize, usize), Transform>::default();
+    let mut transforms = HashMap::default();
+    let mut culleda = HashSet::default();
+    let mut culledb = HashSet::default();
+    for (i, a) in scans.iter().enumerate() {
+        let distances = pairs(a)
+            .map(|(p, q)| (p.square_distance(q), (p, q)))
+            .collect::<HashMap<_, _>>();
 
-    for ((i, a), (j, b)) in pairs_enumerate(&scans) {
-        if let Some(transform) = orient(a, b) {
-            if i < j {
-                transforms.insert((i, j), transform);
-            } else {
-                transforms.insert((j, i), transform);
+        for (j, b) in scans[i + 1..].iter().enumerate() {
+            culleda.clear();
+            culledb.clear();
+
+            for (pb, qb) in pairs(b) {
+                let dis = pb.square_distance(qb);
+                if let Some((pa, qa)) = distances.get(&dis) {
+                    culleda.insert(**pa);
+                    culleda.insert(**qa);
+                    culledb.insert(*pb);
+                    culledb.insert(*qb);
+                }
+            }
+            if culledb.len() < 12 {
+                continue;
+            }
+            if let Some(transform) = orient(&culleda, &culledb) {
+                transforms.insert((i, i + j + 1), transform.inv());
+                transforms.insert((i + j + 1, i), transform);
             }
         }
     }
-
-    let mut resolved_beacons = HashSet::<Point>::default();
-    for (i, beacons) in scans.iter().enumerate() {
-        if i == 0 {
-            resolved_beacons.extend(beacons);
-            continue;
-        }
+    let mut all_beacons = HashSet::default();
+    all_beacons.extend(&scans[0]);
+    for (i, scan) in scans.iter().enumerate().skip(1) {
         let path = find_path(i, scans.len(), &transforms);
-        for b in beacons {
-            let bt = path
+        println!("{:?}", path);
+        for b in scan {
+            let b = path
                 .iter()
-                .map(|p| transforms.get(p).unwrap())
+                .map(|k| transforms.get(k).unwrap())
                 .fold(*b, |b, t| t.apply(&b));
-            resolved_beacons.insert(bt);
+            all_beacons.insert(b);
         }
-        let mut origin = Point(0, 0, 0);
-        for t in path.iter().filter_map(|p| transforms.get(p)) {
-            origin = t.apply(&origin);
-        }
-        println!("{} relative to {}: {:?}", i, 0, origin);
+        let origin = path
+            .iter()
+            .filter_map(|k| transforms.get(k))
+            .fold(Point(0, 0, 0), |b, t| t.apply(&b));
+        println!("{} is at {:?}", i, origin);
     }
-    resolved_beacons.len()
+    all_beacons.len()
 }
 
 fn find_path(
@@ -126,10 +126,10 @@ fn find_path(
         }
         let next = (0..n).filter(|j| *j != p);
         for j in next {
-            let key = if j < p { (j, p) } else { (p, j) };
-            if transforms.contains_key(&key) {
+            let k = (p, j);
+            if transforms.contains_key(&k) {
                 let mut path = path.clone();
-                path.push(key);
+                path.push(k);
                 fringe.push_back((j, path));
             }
         }
@@ -137,61 +137,28 @@ fn find_path(
     panic!("no path found");
 }
 
-// Produce a relative transform between the two scanner's coordinate systems based on their readings.
-//
-// If the scanners do not have overlapping beacons then returns None.
-//
-// The resulting transform will take a point in S2 to S1
-fn orient(first: &[Point], second: &[Point]) -> Option<Transform> {
-    // First find a set of at least 3 points that we know the distances between,
-    // and where those distances are found in both `first` and `second`.
-    let (origin1, ref1) = find_set(first, second)?;
-    let pairs1 = ref1
-        .iter()
-        .map(|q| (origin1.square_distance(q), (origin1, q)))
-        .collect::<HashMap<_, _>>();
-
-    // FIXME: This can probably be computed at the same time within `find_set`
-    let mut seen = HashMap::default();
-    let mut pairs2 = HashMap::default();
-    for (p, q) in pairs(second) {
-        let d = p.square_distance(q);
-        if pairs1.contains_key(&d) {
-            pairs2.insert(d, (p, q));
-            *seen.entry(p).or_insert(0) += 1;
-            *seen.entry(q).or_insert(0) += 1;
-        }
-        if pairs2.len() == pairs1.len() {
-            break;
+fn orient(first: &HashSet<Point>, second: &HashSet<Point>) -> Option<Transform> {
+    for p in first {
+        for q in second {
+            // Assume p and q are the same beacon in two different
+            // coordinate systems and see if it works.
+            //
+            // Translate all of first to q, then try every rotation
+            let transform = find_transform(second, *q, first, *p);
+            if transform.is_some() {
+                return transform;
+            }
         }
     }
-    let (origin2, _) = seen.into_iter().max_by_key(|p| p.1).unwrap();
-
-    // At this point we have, for each scanner, pairs of beacons with the same distances
-    //
-    // The first part p1 is the beacon that is common to both scans.
-    let (d, pair1) = pairs1.iter().next().unwrap();
-    let p1 = pair1.1.relative(&origin1);
-    let p2 = {
-        let pair2 = pairs2.get(d).unwrap();
-        let p = pair2.0.relative(origin2);
-        let q = pair2.1.relative(origin2);
-        if p == Point(0, 0, 0) {
-            q
-        } else {
-            p
-        }
-    };
-    let rotation = find_rotation(p2, p1);
-    let transform = Transform {
-        rotation,
-        origin1,
-        origin2: *origin2,
-    };
-    Some(transform)
+    None
 }
 
-fn find_rotation(p: Point, q: Point) -> Rotation {
+fn find_transform(
+    source: &HashSet<Point>,
+    p: Point,
+    dest: &HashSet<Point>,
+    q: Point,
+) -> Option<Transform> {
     // This implies 48 but there's actually only 24 possible outcomes.
     // The permutations combined with a rotation actually are not unique
     let permutations = [
@@ -214,29 +181,41 @@ fn find_rotation(p: Point, q: Point) -> Rotation {
     ];
     for perm in permutations {
         for sign in signs {
-            // apply permutation
-            let rotation = Rotation { perm, sign };
-            let rotated = rotation.apply(p);
-
-            if rotated == q {
-                return rotation;
+            let transform = Transform {
+                p,
+                q,
+                rotation: Rotation { perm, sign },
+            };
+            let matched = source
+                .iter()
+                .map(|p| transform.apply(p))
+                .all(|p| dest.contains(&p));
+            if matched {
+                return Some(transform);
             }
         }
     }
-    panic!("no transformation found");
+    None
 }
 
+#[derive(Debug, Clone)]
 struct Transform {
-    origin1: Point,
-    origin2: Point,
+    p: Point,
+    q: Point,
     rotation: Rotation,
 }
 
 impl Transform {
     fn apply(&self, p: &Point) -> Point {
-        self.rotation
-            .apply(p.relative(&self.origin2))
-            .add(&self.origin1)
+        self.rotation.apply(p.relative(&self.p)).add(&self.q)
+    }
+
+    fn inv(&self) -> Self {
+        Transform {
+            p: self.q,
+            q: self.p,
+            rotation: self.rotation.inv(),
+        }
     }
 }
 
@@ -254,6 +233,15 @@ impl Rotation {
         transformed.2 *= self.sign.2;
         transformed
     }
+
+    fn inv(&self) -> Rotation {
+        let mut perm = self.perm;
+        perm.swap(0, 1);
+        Rotation {
+            perm,
+            sign: self.sign,
+        }
+    }
 }
 
 fn swap(mut p: Point, swaps: &[(usize, usize)]) -> Point {
@@ -270,33 +258,6 @@ fn swap(mut p: Point, swaps: &[(usize, usize)]) -> Point {
     p
 }
 
-// Find a set of at least 3 distances and their points that are present in both scanner readings.
-fn find_set(first: &[Point], second: &[Point]) -> Option<(Point, Vec<Point>)> {
-    let mut distances1 = HashMap::default();
-    for (p, q) in pairs(first) {
-        let d = p.square_distance(q);
-        distances1.insert(d, (p, q));
-    }
-
-    let mut overlap = HashMap::<Point, Vec<Point>>::default();
-    for (p, q) in pairs(second) {
-        let d = p.square_distance(q);
-        if let Some((p1, q1)) = distances1.get(&d) {
-            overlap.entry(**p1).or_insert_with(Vec::new).push(**q1);
-            overlap.entry(**q1).or_insert_with(Vec::new).push(**p1);
-        }
-    }
-    if overlap.len() < 11 {
-        return None;
-    }
-    for (p, qs) in &overlap {
-        if qs.len() >= 2 {
-            return Some((*p, qs[..2].to_owned()));
-        }
-    }
-    None
-}
-
 fn pairs<T>(slice: &[T]) -> impl Iterator<Item = (&T, &T)> {
     slice
         .iter()
@@ -304,16 +265,7 @@ fn pairs<T>(slice: &[T]) -> impl Iterator<Item = (&T, &T)> {
         .flat_map(|(i, p)| slice[i + 1..].iter().map(move |q| (p, q)))
 }
 
-fn pairs_enumerate<T>(slice: &[T]) -> impl Iterator<Item = ((usize, &T), (usize, &T))> {
-    slice.iter().enumerate().flat_map(|(i, p)| {
-        slice[i + 1..]
-            .iter()
-            .enumerate()
-            .map(move |(j, q)| ((i, p), (i + j + 1, q)))
-    })
-}
-
-fn part_two(scans: Vec<Vec<Point>>) -> usize {
+fn part_two(_scans: Vec<Vec<Point>>) -> usize {
     0
 }
 
