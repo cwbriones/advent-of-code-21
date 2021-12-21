@@ -48,8 +48,7 @@ fn part_two(start: (usize, usize)) -> usize {
     let (p1, p2) = start;
     let mut cache = HashMap::default();
 
-    let wins = ways(p1, 0, p2, 0, true, &mut cache);
-    let losses = ways(p1, 0, p2, 0, false, &mut cache);
+    let (wins, losses) = ways(p1, 0, p2, 0, &mut cache);
     wins.max(losses) as usize
 }
 
@@ -59,15 +58,12 @@ fn ways(
     score1: usize,
     pos2: usize,
     score2: usize,
-    win: bool,
-    cache: &mut HashMap<(usize, usize, usize, usize, bool), usize>,
-) -> usize {
-    if score1 >= 21 && score2 < 21 {
-        return win as usize;
-    } else if score2 >= 21 && score1 < 21 {
-        return !win as usize;
+    cache: &mut HashMap<(usize, usize, usize, usize), (usize, usize)>,
+) -> (usize, usize) {
+    if score2 >= 21 {
+        return (0, 1);
     }
-    let key = (pos1, score1, pos2, score2, win);
+    let key = (pos1, score1, pos2, score2);
     if let Some(val) = cache.get(&key) {
         return *val;
     }
@@ -81,9 +77,10 @@ fn ways(
         .enumerate()
         .map(|(i, roll_ways)| {
             let p1 = (pos1 + i + 3) % 10;
-            roll_ways * ways(pos2, score2, p1, score1 + p1 + 1, !win, cache)
+            let (losses, wins) = ways(pos2, score2, p1, score1 + p1 + 1, cache);
+            (roll_ways * wins, roll_ways * losses)
         })
-        .sum::<usize>();
+        .fold((0, 0), |acc, i| (acc.0 + i.0, acc.1 + i.1));
     cache.insert(key, total);
     total
 }
