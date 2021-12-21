@@ -74,7 +74,7 @@ fn tick(image: &[Vec<usize>], algorithm: &[usize], pad: usize) -> (Vec<Vec<usize
     let width = image[0].len();
     let mut blank_row = Vec::new();
 
-    let pad_idx = if pad > 0 { 511 } else { 0 };
+    let pad_idx = if pad > 0 { (1 << 9) - 1 } else { 0 };
     let next_pad = algorithm[pad_idx];
     blank_row.resize(width + 2, next_pad);
 
