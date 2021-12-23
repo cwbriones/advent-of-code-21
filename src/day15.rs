@@ -1,10 +1,5 @@
-use std::collections::BinaryHeap;
-
 use crate::prelude::*;
-use crate::search::{
-    cmp_by_key,
-    CmpByKey,
-};
+use crate::search::SearchQueue;
 
 fn parse(r: &str) -> Vec<Vec<usize>> {
     r.lines()
@@ -24,48 +19,36 @@ fn part_two(nums: Vec<Vec<usize>>) -> usize {
     search(nums, 5)
 }
 
-struct SearchState {
-    p: (isize, isize),
-    cost: usize,
-}
-
 fn search(nums: Vec<Vec<usize>>, tile_size: isize) -> usize {
-    let mut fringe = BinaryHeap::new();
-    let cost_cmp = |s: &SearchState| std::cmp::Reverse(s.cost);
-    fringe.push(cmp_by_key(SearchState { p: (0, 0), cost: 0 }, cost_cmp));
+    let mut fringe = SearchQueue::new();
+    fringe.push(0, (0, 0));
     let height = (nums.len() as isize) * tile_size;
     let width = (nums[0].len() as isize) * tile_size;
     let target = (height - 1, width - 1);
 
     let mut visited = HashSet::default();
-    while let Some(CmpByKey { t: state, .. }) = fringe.pop() {
-        if visited.contains(&state.p) {
+    while let Some((cost, p)) = fringe.pop() {
+        if visited.contains(&p) {
             continue;
         }
-        visited.insert(state.p);
+        visited.insert(p);
 
-        let (y, x) = state.p;
-        if state.p == target {
-            return state.cost;
+        let (y, x) = p;
+        if p == target {
+            return cost;
         }
         let neighbors = [(y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)];
         neighbors
             .iter()
             .filter(|(y, x)| *y >= 0 && *x >= 0 && *y < height && *x < width)
             .for_each(|&p| {
-                fringe.push(cmp_by_key(
-                    SearchState {
-                        p,
-                        cost: state.cost + cost(&nums, p.1, p.0),
-                    },
-                    cost_cmp,
-                ));
+                fringe.push(cost + cost_to(&nums, p.1, p.0), p);
             });
     }
     panic!("no path found");
 }
 
-fn cost(nums: &[Vec<usize>], y: isize, x: isize) -> usize {
+fn cost_to(nums: &[Vec<usize>], y: isize, x: isize) -> usize {
     let tile_height = nums.len() as isize;
     let tile_width = nums[0].len() as isize;
 

@@ -1,54 +1,50 @@
-// CmpByKey is a wrapper to avoid implementing comparisons for a struct
-// when you only need to compare on a single field.
-pub struct CmpByKey<T, F> {
-    pub t: T,
-    f: F,
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+
+pub struct SearchQueue<T> {
+    queue: BinaryHeap<Reverse<WithCost<T>>>,
 }
 
-pub fn cmp_by_key<T, U, F>(t: T, f: F) -> CmpByKey<T, F>
-where
-    F: Fn(&T) -> U,
-    U: PartialEq,
-{
-    CmpByKey { t, f }
+impl<T> SearchQueue<T> {
+    pub fn new() -> Self {
+        Self {
+            queue: BinaryHeap::new(),
+        }
+    }
+    pub fn push(&mut self, cost: usize, node: T) {
+        self.queue.push(Reverse(WithCost(cost, node)));
+    }
+
+    pub fn pop(&mut self) -> Option<(usize, T)> {
+        if let Some(Reverse(WithCost(cost, node))) = self.queue.pop() {
+            Some((cost, node))
+        } else {
+            None
+        }
+    }
 }
 
-impl<T, U, F> PartialEq for CmpByKey<T, F>
-where
-    F: Fn(&T) -> U,
-    U: PartialEq,
-{
+#[derive(Clone)]
+struct WithCost<T>(usize, T);
+
+impl<T: Copy> Copy for WithCost<T> {}
+
+impl<T> PartialEq for WithCost<T> {
     fn eq(&self, other: &Self) -> bool {
-        let f = &self.f;
-        f(&self.t).eq(&f(&other.t))
+        self.0.eq(&other.0)
     }
 }
 
-impl<T, U, F> Eq for CmpByKey<T, F>
-where
-    F: Fn(&T) -> U,
-    U: Eq,
-{
-}
+impl<T> Eq for WithCost<T> {}
 
-impl<T, U, F> PartialOrd for CmpByKey<T, F>
-where
-    F: Fn(&T) -> U,
-    U: PartialOrd,
-{
+impl<T> PartialOrd for WithCost<T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let f = &self.f;
-        f(&self.t).partial_cmp(&f(&other.t))
+        self.0.partial_cmp(&other.0)
     }
 }
 
-impl<T, U, F> Ord for CmpByKey<T, F>
-where
-    F: Fn(&T) -> U,
-    U: Ord,
-{
+impl<T> Ord for WithCost<T> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let f = &self.f;
-        f(&self.t).cmp(&f(&other.t))
+        self.0.cmp(&other.0)
     }
 }
