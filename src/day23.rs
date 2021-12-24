@@ -18,7 +18,7 @@ use crate::search::SearchQueue;
 //     Room(usize, usize),
 // }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Frog(usize);
 
 impl Frog {
@@ -60,27 +60,43 @@ fn parse(input: &str) -> [Room; 4] {
         },
     ];
     for (i, (b, t)) in bottom.zip(top).enumerate() {
-        rooms[i].occupants.push(Frog::new(b));
-        rooms[i].occupants.push(Frog::new(t));
+        rooms[i].add(Frog::new(b));
+        rooms[i].add(Frog::new(t));
     }
     rooms
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct Room {
     occupants: Vec<Frog>,
 }
 
-#[derive(Clone)]
+impl Room {
+    fn add(&mut self, frog: Frog) {
+        self.occupants.push(frog);
+    }
+
+    fn len(&self) -> usize {
+        self.occupants.len()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct SearchState {
     rooms: [Room; 4],
     hall: [Option<Frog>; 11],
 }
 
 fn part_one(rooms: [Room; 4]) -> usize {
+    solve(rooms).expect("no path found")
+}
+
+fn solve(rooms: [Room; 4]) -> Option<usize> {
     // println!("{:?}", rooms);
+    let room_height = rooms[0].len();
+    println!("{}", room_height);
+    display(&rooms, room_height, &[None; 11]);
     let mut fringe = SearchQueue::new();
-    // trying dfs since we should get *some* result
     fringe.push(
         0,
         SearchState {
@@ -88,15 +104,22 @@ fn part_one(rooms: [Room; 4]) -> usize {
             hall: [None; 11],
         },
     );
-    let room_height = 2;
+
+    let mut seen = HashSet::default();
     while let Some((cost, state)) = fringe.pop() {
-        if state
-            .rooms
-            .iter()
-            .enumerate()
-            .all(|(i, r)| r.occupants.len() == 2 && r.occupants.iter().all(|f| f.0 == i))
+        if seen.contains(&state) {
+            continue;
+        }
+        seen.insert(state.clone());
+        if state.hall.iter().all(|s| s.is_none())
+            && state
+                .rooms
+                .iter()
+                .enumerate()
+                .all(|(i, r)| r.occupants.iter().all(|f| f.0 == i))
         {
-            return cost;
+            display(&state.rooms, room_height, &state.hall);
+            return Some(cost);
         }
         // - move a frog from their origin room to the hall
         for (i, room) in state.rooms.iter().enumerate() {
@@ -116,17 +139,17 @@ fn part_one(rooms: [Room; 4]) -> usize {
             }
             let mut new_rooms = state.rooms.clone();
             let frog = new_rooms[i].occupants.pop().unwrap();
-            let y_cost = room_height - new_rooms[i].occupants.len();
+            let y_cost = room_height - new_rooms[i].len();
 
             let x_iter = (x_start..room_x)
-                .chain(room_x + 1..x_end) // may not need this because of filter
+                .chain(room_x + 1..=x_end) // may not need this because of filter
                 .filter(|&x| x != 2 && x != 4 && x != 6 && x != 8);
             for x in x_iter {
                 let x_cost = if x > room_x { x - room_x } else { room_x - x };
                 let mut new_hall = state.hall;
                 new_hall[x] = Some(frog);
                 fringe.push(
-                    cost + (y_cost + x_cost) * frog.cost(),
+                    cost + (x_cost + y_cost) * frog.cost(),
                     SearchState {
                         rooms: new_rooms.clone(),
                         hall: new_hall,
@@ -157,10 +180,10 @@ fn part_one(rooms: [Room; 4]) -> usize {
             let mut new_hall = state.hall;
             new_hall[x_pos] = None;
             let mut new_rooms = state.rooms.clone();
-            let y_cost = room_height - new_rooms[frog.0].occupants.len();
-            new_rooms[frog.0].occupants.push(*frog);
+            let y_cost = room_height - new_rooms[frog.0].len();
+            new_rooms[frog.0].add(*frog);
             fringe.push(
-                cost + (y_cost + x_cost) * frog.cost(),
+                cost + (x_cost + y_cost) * frog.cost(),
                 SearchState {
                     rooms: new_rooms,
                     hall: new_hall,
@@ -168,11 +191,44 @@ fn part_one(rooms: [Room; 4]) -> usize {
             );
         }
     }
-    panic!("no path found");
+    None
 }
 
-fn part_two(rooms: [Room; 4]) -> usize {
-    0
+fn display(rooms: &[Room; 4], room_height: usize, hall: &[Option<Frog>; 11]) {
+    println!("#############");
+    let mut hall_str = String::new();
+    hall_str.push('#');
+    for h in hall {
+        hall_str.push(h.map(|f| f.as_char()).unwrap_or('.'));
+    }
+    hall_str.push('#');
+    println!("{}", hall_str);
+
+    let mut line = String::new();
+    for i in (0..room_height).rev() {
+        line.clear();
+        let ends = if i == room_height - 1 { "##" } else { "  " };
+        line.push_str(ends);
+        for room in rooms {
+            line.push('#');
+            line.push(room.occupants.get(i).map(|f| f.as_char()).unwrap_or('.'));
+        }
+        line.push('#');
+        line.push_str(ends);
+        println!("{}", line);
+    }
+    println!("  #########");
+}
+
+fn part_two(mut rooms: [Room; 4]) -> usize {
+    let insertions = [['D', 'D'], ['B', 'C'], ['A', 'B'], ['C', 'A']];
+    for (room, insert) in rooms.iter_mut().zip(insertions) {
+        let top = room.occupants.pop().unwrap();
+        room.occupants.extend(insert.iter().map(|c| Frog::new(*c)));
+        room.occupants.push(top);
+    }
+    println!("{:?}", rooms);
+    solve(rooms).expect("no path found")
 }
 
 pub fn run(runner: &Runner) {
