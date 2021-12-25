@@ -92,9 +92,7 @@ fn part_one(rooms: [Room; 4]) -> usize {
 }
 
 fn solve(rooms: [Room; 4]) -> Option<usize> {
-    // println!("{:?}", rooms);
     let room_height = rooms[0].len();
-    println!("{}", room_height);
     display(&rooms, room_height, &[None; 11]);
     let mut fringe = SearchQueue::new();
     fringe.push(
@@ -227,7 +225,6 @@ fn part_two(mut rooms: [Room; 4]) -> usize {
         room.occupants.extend(insert.iter().map(|c| Frog::new(*c)));
         room.occupants.push(top);
     }
-    println!("{:?}", rooms);
     solve(rooms).expect("no path found")
 }
 
